@@ -8,10 +8,12 @@ from sqlalchemy.sql import func
 from geoalchemy2 import Geography
 
 from src.models.geobucket import GeoBucket
+from src.models.geobucket_alias import GeoBucketAlias
 from src.services.normalize import normalize_location
 
 BUCKET_PRECISION = 6
 BUCKET_RADIUS_METERS = 300
+ALIAS_SIMILARITY_THRESHOLD = 0.7
 
 _BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz"
 
@@ -109,6 +111,9 @@ async def assign_bucket(
             )
         )
         if within.scalar():
+            await _maybe_add_alias(
+                session, bucket=bucket, normalized_location=normalized
+            )
             return bucket
 
     bucket = GeoBucket(
@@ -120,3 +125,36 @@ async def assign_bucket(
     session.add(bucket)
     await session.flush()
     return bucket
+
+
+async def _maybe_add_alias(
+    session: AsyncSession, *, bucket: GeoBucket, normalized_location: str
+) -> None:
+    if not normalized_location:
+        return
+
+    similarity_to_bucket = await session.execute(
+        select(func.similarity(bucket.normalized_name, normalized_location))
+    )
+    if (similarity_to_bucket.scalar() or 0) >= ALIAS_SIMILARITY_THRESHOLD:
+        return
+
+    alias_stmt = select(GeoBucketAlias.normalized_alias).where(
+        GeoBucketAlias.geo_bucket_id == bucket.id
+    )
+    existing_aliases = (await session.execute(alias_stmt)).scalars().all()
+
+    if normalized_location in existing_aliases:
+        return
+
+    if existing_aliases:
+        sim_stmt = select(
+            func.max(func.similarity(GeoBucketAlias.normalized_alias, normalized_location))
+        ).where(GeoBucketAlias.geo_bucket_id == bucket.id)
+        max_alias_sim = (await session.execute(sim_stmt)).scalar() or 0
+        if max_alias_sim >= ALIAS_SIMILARITY_THRESHOLD:
+            return
+
+    session.add(
+        GeoBucketAlias(geo_bucket_id=bucket.id, normalized_alias=normalized_location)
+    )

@@ -6,6 +6,7 @@ from alembic import context
 
 from src.models.base import Base
 from src.models.geobucket import GeoBucket  # noqa: F401
+from src.models.geobucket_alias import GeoBucketAlias  # noqa: F401
 from src.models.property import Property  # noqa: F401
 
 config = context.config

@@ -20,6 +20,7 @@ Tradeoffs:
 ## Schema and indexes
 Tables:
 - `geo_buckets`: stores geohash6, normalized name, centroid point, optional cached coverage radius.
+- `geo_bucket_aliases`: stores additional normalized names observed within a bucket (searchable aliases).
 - `properties`: stores property metadata and a FK to `geo_buckets`.
 
 Indexes:
@@ -38,7 +39,7 @@ We normalize all location strings in Python:
 
 Search flow:
 1. Normalize query in Python.
-2. Use `pg_trgm` similarity (`%` operator + `similarity()` score) to find candidate buckets.
+2. Use `pg_trgm` similarity (`%` operator + `similarity()` score) to find candidate buckets (by bucket canonical name and aliases).
 3. Rank by similarity and take top N candidates.
 4. Fetch properties using bucket FK (indexed) and return results.
 
