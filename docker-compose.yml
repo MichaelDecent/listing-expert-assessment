@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   db:
     image: postgis/postgis:15-3.4
@@ -10,5 +9,16 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/expertlisting
+      DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@db:5432/expertlisting
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+
 volumes:
   db_data:

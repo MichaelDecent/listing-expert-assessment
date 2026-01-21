@@ -44,15 +44,15 @@ async def create_property(
     await session.refresh(prop)
     await session.refresh(bucket)
     return PropertyWithBucket(
-        property=PropertyRead.from_orm(prop),
-        bucket=GeoBucketRead.from_orm(bucket),
+        property=PropertyRead.model_validate(prop),
+        bucket=GeoBucketRead.model_validate(bucket),
     )
 
 
 @router.get("/properties/search", response_model=List[PropertyRead])
 async def search(location: str = Query(..., min_length=2), session: AsyncSession = Depends(get_session)):
     props = await search_properties(session, location=location)
-    return [PropertyRead.from_orm(prop) for prop in props]
+    return [PropertyRead.model_validate(prop) for prop in props]
 
 
 @router.get("/geo-buckets/stats")

@@ -1,10 +1,10 @@
 import os
-import asyncio
 
 import pytest
+import pytest_asyncio
 from alembic import command
 from alembic.config import Config
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from sqlalchemy import text
 
 os.environ.setdefault(
@@ -20,13 +20,6 @@ from src.main import app
 from src.db.session import AsyncSessionLocal
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
 @pytest.fixture(scope="session", autouse=True)
 def run_migrations():
     sync_url = os.getenv(
@@ -38,7 +31,7 @@ def run_migrations():
     command.upgrade(cfg, "head")
 
 
-@pytest.fixture(autouse=True)
+@pytest_asyncio.fixture(autouse=True)
 async def clear_tables():
     async with AsyncSessionLocal() as session:
         await session.execute(text("DELETE FROM properties"))
@@ -47,7 +40,8 @@ async def clear_tables():
     yield
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def async_client():
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client

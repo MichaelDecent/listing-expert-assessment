@@ -3,42 +3,35 @@
 Async FastAPI backend for geo-bucketed property search with Postgres + PostGIS + pg_trgm.
 
 ## Prereqs
-- Docker + docker-compose
-- Python 3.11
+- Docker + docker compose
 
-## Run Postgres + PostGIS
+## Run Postgres + API (Docker)
 ```bash
-docker-compose up -d
+docker compose up -d --build
+```
+
+Once running, open the FastAPI docs to create properties, search, and fetch bucket stats:
+```text
+http://localhost:8000/docs
 ```
 
 Create test database:
 ```bash
-psql postgresql://postgres:postgres@localhost:5432/expertlisting -c "CREATE DATABASE expertlisting_test;"
+docker compose exec db psql -U postgres -d expertlisting -c "CREATE DATABASE expertlisting_test;"
 ```
 
-## Install Python deps (uv)
-```bash
-uv sync
-```
+## Run migrations and seed data
+Docker entrypoint runs `alembic upgrade head` and seeds if the `properties` table is empty.
 
-## Run migrations
+To run manually:
 ```bash
-alembic upgrade head
-```
-
-## Seed data
-```bash
-python seed.py
-```
-
-## Run API
-```bash
-uv run uvicorn src.main:app --reload
+docker compose exec api uv run alembic upgrade head
+docker compose exec api uv run python seed.py
 ```
 
 ## Run tests
 ```bash
-uv run pytest
+docker compose exec api uv run pytest
 ```
 
 ## Example cURL

@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.schemas.geobucket import GeoBucketRead
 
@@ -17,6 +17,7 @@ class PropertyCreate(BaseModel):
 
 
 class PropertyRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: UUID
     title: str
     location_name: str
@@ -29,10 +30,6 @@ class PropertyRead(BaseModel):
     geo_bucket_id: UUID
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
 
 class PropertyWithBucket(BaseModel):
     property: PropertyRead
