@@ -16,6 +16,28 @@ fi
 
 export DATABASE_URL_SYNC="$DB_URL_SYNC"
 
+retries=30
+until uv run python - <<'PY'
+import os
+import psycopg2
+
+url = os.environ.get("DATABASE_URL_SYNC")
+try:
+    conn = psycopg2.connect(url)
+    conn.close()
+    raise SystemExit(0)
+except Exception:
+    raise SystemExit(1)
+PY
+do
+  retries=$((retries - 1))
+  if [[ "$retries" -le 0 ]]; then
+    echo "Database did not become ready in time." >&2
+    exit 1
+  fi
+  sleep 1
+done
+
 uv run alembic upgrade head
 
 should_seed=$(uv run python - <<'PY'
